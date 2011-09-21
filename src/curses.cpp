@@ -98,7 +98,10 @@ void Curses::initShared(string logfile, verboseEnum verbosity, bool fullscreen)
   
   out << VERBOSE_LOUD << "Initialising graphics...\n";
   if (!graphics->init(out, graphics->makeWindowInfo(0, 0, 100, 100, true, true, 60, 24, fullscreen, "Title"),
-    "/usr/share/fonts/bitstream-vera/Vera.ttf", 42)) {
+    //"/usr/share/fonts/bitstream-vera/Vera.ttf",
+    "/usr/share/fonts/truetype/ubuntu-font-family/Ubuntu-R.ttf",
+    42)) {
+    // TODO don't hard code font - may not have it!
     // TODO gameover here
   }
 

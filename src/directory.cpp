@@ -25,7 +25,8 @@ vector <string> Directory::getPics(string path)
     while ((ep = readdir(dp))) {
       //cerr << "Read file: " << ep->d_name << endl;
 
-      if (std::strcmp(ep->d_name, ".") && std::strcmp(ep->d_name, "..")) {
+      // TODO this is a hard coded hack
+      if (std::strcmp(ep->d_name, ".") && std::strcmp(ep->d_name, "..") && std::strcmp(ep->d_name, ".gitignore")) {
         // if not current or parent directory
 
         /*string temp = path + ep->d_name; // add on path

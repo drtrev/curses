@@ -45,6 +45,7 @@ Transferrecv::Transferrecv(int s, int d, int i, const char* p, const char* f)
 
   if (!checkFileExists(path, true)) {
     std::cerr << "Directory does not exist, attempting to create dir: " << path << std::endl;
+    std::cerr << "This will probably fail. Make the dir yourself or fix this." << std::endl;
     //mkdir(path, 448); // rwx for owner
     mkdir(path, 0700);
   }

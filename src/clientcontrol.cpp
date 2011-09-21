@@ -31,6 +31,7 @@ void Clientcontrol::init(int port, std::string logfile, std::string readPath, ve
 
   if (!dontGrab) input.grab();
 
+  // TODO this needs to not be hardcoded
   std::string writePath = "/tmp/trev/pics";
 
   picturecontrol.setReadPath(readPath);
