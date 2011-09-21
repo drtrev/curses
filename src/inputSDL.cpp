@@ -41,7 +41,7 @@ int InputSDL::map(SDLKey sym)
     case SDLK_p:
       key = KEYS_ZOOM_IN;
       break;
-    case SDLK_q:
+    case SDLK_ESCAPE:
       key = KEYS_QUIT;
       break;
     default:
