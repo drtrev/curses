@@ -1,0 +1,17 @@
+working on building on home pc.
+
+so far home src is same as uni src
+
+image magick is installed, but it doesn't find magick++.h, prob cos it's in ImageMagick/magick++.h
+
+good luck
+
+--
+
+ok added /usr/include/ImageMagick to CMakeLists.txt
+
+patched files in imagemagick, see notes
+
+oglft doesn't work on home comp - got font now!
+
+changed width and height in fullscreen windowgensdl.cpp, otherwise same as uni
