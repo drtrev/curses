@@ -1,0 +1,46 @@
+# inspiration from
+# http://www.elpauer.org/stuff/learning_cmake.pdf,
+# http://www.cmake.org/Wiki/CMake#Tutorials
+# http://www-flc.desy.de/ldcoptimization/documents/talks/CMake_Tutorial.pdf
+# http://www.cmake.org/HTML/Examples.html
+
+PROJECT( CURSES )
+
+#INCLUDE( CMakeBackwardCompatibilityCXX )
+
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ansi -pedantic -Wall" )
+MESSAGE( STATUS "CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS} )
+
+ADD_SUBDIRECTORY( network )
+ADD_SUBDIRECTORY( sound )
+ADD_SUBDIRECTORY( transfer )
+
+# to debug, change the CMAKE_BUILD_TYPE in ccmake to Debug
+
+#ADD_LIBRARY( Sound sound )
+#ADD_LIBRARY( Player player )
+#ADD_LIBRARY( Player player )
+#ADD_LIBRARY( mylib SHARED ${mylib_SRCS} )
+
+# SHARED keyword generates  shared libraries (.so on *nix, or dll on
+# windows) Shared libraries are linked when the program starts up (as
+# opposed to dynamic libraries which are linked when the program chooses
+# to call dlopen). If you build shared libraries in C++ then should use
+# 'soversioning' to state binary compatibility.
+
+# /usr/local/include/oglft for my asus eee pc
+INCLUDE_DIRECTORIES( ../include /home/csunix/trev/shoot/include
+/usr/include/freetype2 /usr/local/include/oglft /usr/include/GraphicsMagick )
+# /usr/local/lib for my home pc
+LINK_DIRECTORIES( /home/csunix/trev/shoot/lib /usr/local/lib )
+
+SET ( curses_SRCS bad badcontrol bullet bulletcontrol 
+clientcontrol curses debris directory graphics graphicscurses graphicsopengl input
+inputSDL inputX11 main map out outverbose picture picturecontrol player powerup powerupcontrol
+ringbuf servercontrol textures timer windowgen windowgenglut windowgensdl )
+# note: network.h is detected as a dependency, as with all header files
+
+SET ( curses_LIBS boost_regex ncurses openal X11 network sound transfer glut SDL Magick++ OGLFT)
+
+ADD_EXECUTABLE( curses ${curses_SRCS} )
+TARGET_LINK_LIBRARIES( curses ${curses_LIBS} )

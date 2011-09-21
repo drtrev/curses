@@ -1,0 +1,218 @@
+For collision detection - need to check inbetween time!! i.e. bullet could move through baddie from one frame to next
+
+MSG_NOSIGNAL is used in send to stop the SIGPIPE signal. However this is not compatible with FreeBSD. If handling signals,
+then beware of recursive signals (signal during handler function). If this is a problem then use sigaction, sigprocmask to block
+signals, and sigpending to deal with pending signals.
+
+Client and server share curses.cpp's net so it only has to be initialised once!
+
+Using forward declaration to get cyclic references between net and server, and net and client.
+Using pointers where object is mutable (client->addData()) and reference where object is not
+affected checkNewConnection(net...)
+Could use call-by-value but reference or pointers saves creating a copy of the instances
+
+Have been through makefile checking dependencies
+
+Make parent class: controller? And pawn?
+Then can call net.process(unit, myId, pawns, controllers, keyset, timer, sync)
+
+Some stats: about 0.1 Mb per sec
+
+Local:
+What's more important, being in sync with server or smaller jumps (hiding corrections)?
+E.g. work out where object is based on time position was sent by server and velocity.
+This puts objects at same positions as where they are on server, but when they change direction
+they will be further out.
+Does this matter: if lag is small then won't make much difference whichever way you do it.
+
+
+TODO make UDP!
+
+Audio works with client and server both on cslin160, but not over network:
+stream buffer gradually fills up
+popping effect - not queuing them fast enough?
+playing with pitch 2.0 works, so maybe they are all being recieved twice? Twice as much data to process, meaning overflow
+but dropping every other chunk stops overflow but doesn't help sound. Maybe each chunk is playing twice?
+Figured something out: when you output ID's in net.cpp, find that some chunks are received twice!!!
+OK got it - unitFound was not reset to -1 in client.cpp recvDataUnit() when waiting for more data. Sorted now!
+
+Check one more thing though - when net outputs "Calling play" I think the sound is broken up.
+I think calling play is called for the first few chunks too (output chunk IDs) - maybe openAL doesn't have time for a status change?
+Oh no it's because it hasn't got enough for minqueue, so keeps queuing the same buffer!!
+Maybe change play so it doesn't start at the first buffer - why would it need to do this???????????
+
+TODO apply any relevent changes to ogg.cpp!!
+
+TODO do something to check Makefile dependencies... found some were missing. Could automatically parse for include's and check
+against Makefile?
+
+Split talk into stream and talk (with talk just having the capture bits)
+
+----
+cmake
+
+Basically split up files neatly, e.g.
+
+build
+lib
+include
+src
+
+Create a CMakeLists.txt in src (or top level with ADD_SUBDIRECTORY( ... ) )
+If using subdirs as libraries then need to add them and give them their own CMakeLists.txt (see sound)
+In new CMakeLists.txt: need to stand alone, so specify INCLUDE_DIRECTORIES again (don't need LINK_DIRECTORIES cos it won't be linked yet)
+Use ADD_LIBARY( name files... ) this will output library in the library output path (set with cmake or ccmake)
+
+Note not case sensitive in CMakeLists.txt commands
+
+ccmake runs cmake but helps you with command line arguments
+
+library output path should be absolute (otherwise subdirs will create their own lib folder from the relative path)
+this is automatically linked to (don't need to specify it in LINK_DIRECTORIES)
+
+ADD_EXECUTABLE( curses sources....)
+(don't need to add sources for own libraries)
+
+TARGET_LINK_LIBRARIES( curses ncurses openal X11 MyLib ... )
+
+can set vars with SET ( myVar ... ... ) and use with ${myVar}
+
+Splitting talk into sounddev, but realised that it needs to specify format/freq in order to open capture device.
+Maybe it should remain in talk, and talk should be a subclass of stream.
+
+Getting elements of stream into talk. Have decided to give talk access to SoundDev and keep device control separate. Done.
+----
+
+Can check audio by sending back to yourself by changing UNIT_AUDIO in net.cpp to addUnitAll(...., -1)
+
+Separating into several loops: drawing, physics, network. May need to change power of player if put player.input in physics loop and speed up physics - need to think about this (really it should be dependent on time)
+Actually move() assigns accel so as long as it's only called once per loop it doesn't matter about how fast the loop is
+
+
+trying to make whole program a class, with subclasses for clientcontrol and servercontrol
+
+
+noticed that curses doesn't work when redirecting stdout or stderr
+
+working in clientcontrol.cpp, making graphics loop deal with clearing properly
+solved: draw->refresh->clear, then status change in other loops
+
+
+made player use sync for accel (input/move)
+think should increase friction for player
+
+
+soundloop of less than 40Hz leaves gaps (i.e. when queue is empty and it's
+filling to minQueueSize). Not sure why it needs to be so frequently executed.
+
+
+Should make outverbose static?? Declare with extern?? Save initialising it all the time.
+
+
+Texture not working - crashes with gluBuild2DMipmaps()
+
+Thoughts: maybe something to do with SDL? Could try getting windowglut working
+Also have tried just using glTexImage2D, but that doesn't show any texture
+
+To debug, change the CMAKE_BUILD_TYPE in ccmake to Debug
+gdb curses core...
+bt
+x/768xb 0x...address...
+data seems absolutely fine, with extra 0's after it.
+
+still thinking try glut
+
+Actually - server is crashing and it's not using SDL - it's using curses!
+
+working in test/texture.cpp - get the same error so should be able to solve it here - much smaller program!!
+
+Got it - need to have a context (window) to use textures. So need
+glutCreateWindow or SDL equiv. Server did not have window (was using curses) so
+crashed on loading textures. Fixed by stopping server loading textures, split
+picture into init and load, only client calls load.
+
+Working on blending - it works, it just doesn't show through the black background (just shows through the ships)
+What blend function should I be using in graphicsopengl?
+  // typical usage: modify incoming colour by it's alpha, and existing colour by 1 - source alpha
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+Image works, but is slightly losing quality due to gluBuild2DMipmaps resizing to a power of 2. Tried glTexImage2D instead,
+but it just comes up white, even with a power of 2 texture (it should be a power of 2).
+
+Server moves images but doesn't transmit position to client yet!
+Position is now done locally - just send picnum
+
+Just added transmition code in picturecontrol.cpp, need to add picsend to network and deal with receiving in net.
+Then need to make it request each segment, and/or put in a separate loop
+
+Server should just pass on the data, at the moment the server is reading from disk
+Think maybe sending files should be a seperate class? Definitely separate loop
+
+Working on transmitClientRecv in picturecontrol.cpp - need to make server and client call from separate loop (started this in client)
+
+Rearranging everything. See paper. Finishing load() in picturecontrol, make keypress call it (it needs to be called after ID has been assigned). Currently this is called in transfer loop.
+Just finished startTransfer in picc, and picfetch in net.cpp
+Working in transfercontrol.cpp
+
+
+Picture is blurred cos it's stretched to a power of 2. Maybe should just make picture bigger/ add black or transparent border, then it won't lose quality!
+
+Should set a default texture for when it's not loaded yet, or make texId -1 and
+turn texture mapping off? At the minute pictures aren't set as active until
+they're textured
+
+Need to get rid of path from filename, from start (sensible) and end (to stop people trying to mess things up) and check if file already exists!
+OK don't get rid of path from source cos when client requests file source needs to know where it is! Really should just keep path seperate and remove it. Otherwise client could request any file.
+Security: need to check that file requested is in a "shared" folder before sending
+
+Working on getting multiple pictures displayed, see XXX in picturecontrol.cpp - putting ones that aren't next to the back
+
+Added outstd for testing on laptop
+
+To make work on ASUS EEE PC (stop sefaulting on SDL_Init( SDL_INIT_VIDEO ) ):
+download SDL from source,
+run ./autogen.sh (need apt-get install autoconf first)
+then ./configure ; make ; sudo make install
+
+cd test and run ./testgl (it will fail also). Add line:
+SDL_putenv("SDL_VIDEO_X11_WMCLASS=testgl");
+before SDL_Init(...)
+
+should work now
+
+Use same line in program: SDL_putenv("SDL_VIDEO_X11_WMCLASS=curses");
+Also change colour depth of /etc/X11/xorg.conf to 24 instead of 16 (DefaultDepth)
+or change SDL_RED_SIZE etc. to 5 instead of 8 to make it 16 bpp (see how testgl does it)
+
+Not sure why one pic doesn't seem to be transparent? Think it's just to do with the order they are drawn
+
+Made program have a read path (for sending pics) and write path (for receiving).
+
+currently writePath is hard coded to /tmp/trev/pics, and directory is created if
+it doesn't exist (but this DOESN'T WORK if both trev and pics don't exist!!)
+TODO
+
+--
+
+had to patch ImageMagick for my home computer, alternative would have been to
+remove -pedantic flag from CMakeLists.txt (according to:
+http://www.imagemagick.org/discourse-server/viewtopic.php?f=3&t=11405)
+
+patched files: /usr/include/ImageMagick/magick/magick-types.h and
+/magick-deprecated.h (search for LOCAL COPY)
+
+--
+
+on home computer, the text isn't working, see picture.cpp draw(), outputted in graphicsopengl.cpp when drawText was called (face), and all is ok, but no text is shown!
+
+ok that was because didn't have font - TODO need to check for font!
+
+there's an error message output every time: the server sends the initial value of picnum as 0, which is detected as out of range (setPicnum in picturecontrol.cpp only expects to be called when there are pictures - TODO)
+
+made fullscreen mode detect resolution
+
+the thing is calibrated so that 1280x1024 images will fill the screen. search for 1024 (or 768) (padding in picture.cpp and graphicsopengl.cpp)
+made it 768 height for pics now.
+
+sounds problems: crackling between laptop and desktop: solved by turning up capture volume, changing desktop mic (also, it was capturing from the soundblaster card). Also, think need to have server on a separate machine to help.
+SOLUTION is: set freq to a standard that soundcards are optimised for!
